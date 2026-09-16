@@ -34,6 +34,12 @@ def load_assets():
   with open(scaler_path, "rb") as f:
     scaler = pickle.load(f)
 
+  # Compute LogReviews and scale features to assign Cluster labels to the data
+  df["LogReviews"] = np.log1p(df["NumReview"])
+  X = df[["Latitude", "Longitude", "Rating", "LogReviews"]]
+  X_scaled = scaler.transform(X)
+  df["Cluster"] = model.predict(X_scaled)
+
   return df, model, scaler
 
 
