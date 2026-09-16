@@ -1,0 +1,27 @@
+import pickle
+import numpy as np
+import pandas as pd
+from sklearn.cluster import KMeans
+
+# 1. Load data
+df = pd.read_csv("cleaned_cafes.csv")
+
+# 2. Extract features matching app.py
+df["LogReviews"] = np.log1p(df["NumReview"])
+features = ["Latitude", "Longitude", "Rating", "LogReviews"]
+X = df[features]
+
+# 3. Load existing scaler
+with open("scaler.pkl", "rb") as f:
+    scaler = pickle.load(f)
+
+X_scaled = scaler.transform(X)
+
+# 4. Fit and export KMeans model
+kmeans_model = KMeans(n_clusters=5, random_state=42, n_init=10)
+kmeans_model.fit(X_scaled)
+
+with open("kmeans_model.pkl", "wb") as f:
+    pickle.dump(kmeans_model, f)
+
+print("kmeans_model.pkl successfully created!")
