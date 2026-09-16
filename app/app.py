@@ -8,7 +8,7 @@ from streamlit_folium import st_folium
 
 # 1. Page Configuration
 st.set_page_config(
-    page_title="CafeSpot - Café Recommendation Engine",
+    page_title="Byte & Brew: CafeSpot - Café Recommendation Engine",
     page_icon="☕",
     layout="wide",
 )
@@ -80,9 +80,9 @@ max_results = st.sidebar.slider(
 )
 
 # 4. Header & Overview
-st.title("☕ CafeSpot Recommendation Engine")
+st.title("☕ Byte & Brew: CafeSpot Recommender")
 st.caption(
-    "Unsupervised K-Means Clustering model for optimal café selection based on"
+    "A Clustering-Based Recommender for Optimal Café Selection based on"
     " spatial proximity, ratings, and popularity."
 )
 

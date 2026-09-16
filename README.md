@@ -1,4 +1,5 @@
-# CafeSpot - Café Recommendation Engine
+# Byte & Brew: CafeSpot
+### A Clustering-Based Recommender for Optimal Café Selection
 
 Unsupervised K-Means Clustering model for optimal café selection based on spatial proximity, ratings, and popularity.
 
