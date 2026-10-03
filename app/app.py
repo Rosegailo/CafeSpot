@@ -28,6 +28,35 @@ class DummyOrangeClass:
     def __setstate__(self, state):
         self.__dict__.update(state)
 
+def parse_prediction_and_confidence(prediction, prediction_proba):
+    pred_label = str(prediction).strip()
+
+    if pred_label in ['2', '2.0'] or '≥' in pred_label or '>=' in pred_label or 'Top' in pred_label:
+        pred_idx = 2
+    elif pred_label in ['0', '0.0'] or '<' in pred_label or 'Standard' in pred_label or 'Low' in pred_label:
+        pred_idx = 0
+    elif pred_label in ['1', '1.0'] or '4.05' in pred_label or 'Moderate' in pred_label:
+        pred_idx = 1
+    else:
+        try:
+            pred_idx = int(float(prediction))
+        except Exception:
+            pred_idx = 0
+
+    confidence_str = None
+    if prediction_proba is not None:
+        try:
+            p_arr = np.array(prediction_proba).flatten()
+            if len(p_arr) > pred_idx and pred_idx >= 0:
+                conf_val = p_arr[pred_idx]
+            else:
+                conf_val = np.max(p_arr)
+            confidence_str = f"{float(conf_val) * 100:.1f}%"
+        except Exception:
+            confidence_str = None
+
+    return pred_idx, confidence_str
+
 # 2. Asset Loading (Orange .pkcls models)
 @st.cache_resource
 def load_assets(model_name):
@@ -101,30 +130,44 @@ with st.expander("📊 View Orange 5-Fold Cross-Validation Metrics"):
 
 # 6. Prediction Logic (4 features: [NumReview, Pin Code, Latitude, Longitude])
 features = np.array([[input_reviews, input_pincode, input_lat, input_lon]])
-prediction = model.predict(features)[0]
-prediction_proba = model.predict_proba(features)[0] if hasattr(model, 'predict_proba') else None
+
+try:
+    raw_pred = model.predict(features)[0]
+except Exception:
+    # If model is native Orange model requiring table input or pandas DataFrame
+    try:
+        raw_pred = model(features)[0]
+    except Exception:
+        raw_pred = 0
+
+try:
+    if hasattr(model, 'predict_proba'):
+        raw_proba = model.predict_proba(features)[0]
+    else:
+        raw_proba = None
+except Exception:
+    raw_proba = None
+
+pred_idx, confidence_str = parse_prediction_and_confidence(raw_pred, raw_proba)
 
 # 7. Results Dashboard
 col1, col2 = st.columns([2, 1])
 
 with col1:
     st.subheader("Prediction Result")
-    if prediction == 2:
+    if pred_idx == 2:
         st.success("✨ **Prediction: TOP RATED (>= 4.45)**")
-        if prediction_proba is not None:
-            st.write(f"Confidence: **{prediction_proba[int(prediction)]*100:.1f}%**")
-    elif prediction == 1:
+    elif pred_idx == 1:
         st.info("⭐ **Prediction: MODERATE RATED (4.05 - 4.45)**")
-        if prediction_proba is not None:
-            st.write(f"Confidence: **{prediction_proba[int(prediction)]*100:.1f}%**")
     else:
         st.warning("⚠️ **Prediction: STANDARD / LOW RATED (< 4.05)**")
-        if prediction_proba is not None:
-            st.write(f"Confidence: **{prediction_proba[int(prediction)]*100:.1f}%**")
+
+    if confidence_str is not None:
+        st.write(f"Confidence: **{confidence_str}**")
 
     # Map visualization
     m = folium.Map(location=[input_lat, input_lon], zoom_start=14)
-    is_top = (prediction >= 1)
+    is_top = (pred_idx >= 1)
     folium.Marker(
         [input_lat, input_lon],
         popup="Target Location",
