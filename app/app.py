@@ -1,176 +1,157 @@
 import os
 import pickle
-import folium
+import joblib
 import numpy as np
 import pandas as pd
 import streamlit as st
+import folium
 from streamlit_folium import st_folium
 
 # 1. Page Configuration
 st.set_page_config(
-    page_title="Byte & Brew: CafeSpot - Café Recommendation Engine",
+    page_title="Byte & Brew: CafeSpot - AI Predictor",
     page_icon="☕",
     layout="wide",
 )
 
+# Custom unpickler for Orange Data Mining .pkcls model files
+class OrangeUnpickler(pickle.Unpickler):
+    """Fallback unpickler to extract underlying scikit-learn estimator from Orange .pkcls files."""
+    def find_class(self, module, name):
+        if module.startswith('Orange'):
+            return DummyOrangeClass
+        return super().find_class(module, name)
 
-# 2. Asset Loading with Caching
+class DummyOrangeClass:
+    def __init__(self, *args, **kwargs):
+        pass
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+
+# 2. Asset Loading (Orange .pkcls models)
 @st.cache_resource
-def load_assets():
-  # Paths relative to execution directory
-  data_path = "data/processed/cleaned_cafes.csv"
-  model_path = "models/kmeans_model.pkl"
-  scaler_path = "models/scaler.pkl"
+def load_assets(model_name):
+    file_map = {
+        "Orange SVM (best_model.pkcls)": "best_model.pkcls",
+        "Orange kNN (KNN_model.pkcls)": "KNN_model.pkcls",
+        "Orange Random Forest (Random_forest_model.pkcls)": "Random_forest_model.pkcls",
+    }
 
-  # Fallback for flat directory structures during testing
-  if not os.path.exists(data_path):
-    data_path = "cleaned_cafes.csv"
-    model_path = "kmeans_model.pkl"
-    scaler_path = "scaler.pkl"
+    filename = file_map.get(model_name, "best_model.pkcls")
+    model_path = f"models/{filename}"
+    data_path = "data/processed/cleaned_cafes.csv"
 
-  df = pd.read_csv(data_path)
-  with open(model_path, "rb") as f:
-    model = pickle.load(f)
-  with open(scaler_path, "rb") as f:
-    scaler = pickle.load(f)
+    if not os.path.exists(model_path):
+        return None, None
 
-  # Compute LogReviews and scale features to assign Cluster labels to the data
-  df["LogReviews"] = np.log1p(df["NumReview"])
-  X = df[["Latitude", "Longitude", "Rating", "LogReviews"]]
-  X_scaled = scaler.transform(X)
-  df["Cluster"] = model.predict(X_scaled)
+    try:
+        model = joblib.load(model_path)
+    except Exception:
+        with open(model_path, 'rb') as f:
+            orange_obj = OrangeUnpickler(f).load()
+        if hasattr(orange_obj, 'skl_model'):
+            model = orange_obj.skl_model
+        else:
+            model = orange_obj
 
-  return df, model, scaler
+    df = pd.read_csv(data_path) if os.path.exists(data_path) else None
+    return model, df
 
+# 3. Sidebar Inputs & Model Selection
+st.sidebar.header("🛠️ Model Configuration")
 
-try:
-  df_cafes, kmeans_model, scaler = load_assets()
-except Exception as e:
-  st.error(
-      f"Error loading model artifacts: {e}. Please ensure model files exist."
-  )
-  st.stop()
-
-# 3. Sidebar Inputs & Validation
-st.sidebar.header("📍 Preferences & Filters")
-
-user_lat = st.sidebar.number_input(
-    "Your Latitude",
-    min_value=12.7000,
-    max_value=13.3000,
-    value=12.9716,
-    format="%.6f",
-)
-user_lon = st.sidebar.number_input(
-    "Your Longitude",
-    min_value=77.4000,
-    max_value=77.8000,
-    value=77.5946,
-    format="%.6f",
+selected_model_name = st.sidebar.selectbox(
+    "Choose Orange Model to Test",
+    [
+        "Orange SVM (best_model.pkcls)",
+        "Orange kNN (KNN_model.pkcls)",
+        "Orange Random Forest (Random_forest_model.pkcls)",
+    ]
 )
 
-min_rating = st.sidebar.slider(
-    "Minimum Rating Threshold", min_value=3.0, max_value=5.0, value=4.0, step=0.1
-)
-max_results = st.sidebar.slider(
-    "Max Recommendations to Display",
-    min_value=3,
-    max_value=20,
-    value=5,
-)
+model, df = load_assets(selected_model_name)
 
-# 4. Header & Overview
-st.title("☕ Byte & Brew: CafeSpot Recommender")
-st.caption(
-    "A Clustering-Based Recommender for Optimal Café Selection based on"
-    " spatial proximity, ratings, and popularity."
-)
+st.sidebar.header("📍 Café Parameters")
+input_lat = st.sidebar.number_input("Latitude", value=12.9716, format="%.6f")
+input_lon = st.sidebar.number_input("Longitude", value=77.5946, format="%.6f")
+input_reviews = st.sidebar.number_input("Expected Number of Reviews", min_value=0, value=150, step=10)
+input_pincode = st.sidebar.number_input("Pin Code", value=560001, step=1)
 
-# 5. Model Inference Pipeline
-# Map user input to model cluster space
-user_log_reviews = np.log1p(df_cafes["NumReview"].median())  # Baseline median
-user_features = np.array(
-    [[user_lat, user_lon, min_rating, user_log_reviews]]
-)
-user_scaled = scaler.transform(user_features)
-predicted_cluster = kmeans_model.predict(user_scaled)[0]
+# 4. Header
+st.title("☕ Byte & Brew: CafeSpot Predictor")
+st.markdown(f"### Currently active: **{selected_model_name}**")
 
-# Filter candidate cafes
-filtered_df = df_cafes[
-    (df_cafes["Cluster"] == predicted_cluster)
-    & (df_cafes["Rating"] >= min_rating)
-].copy()
+if model is None:
+    st.error(f"Model file for `{selected_model_name}` not found in `models/` folder.")
+    st.stop()
 
-# Calculate direct distance (Euclidean proxy for ranking)
-filtered_df["Distance_Score"] = np.sqrt(
-    (filtered_df["Latitude"] - user_lat) ** 2
-    + (filtered_df["Longitude"] - user_lon) ** 2
-)
-recommendations = filtered_df.sort_values(by="Distance_Score").head(
-    max_results
-)
+# 5. Model Comparison Summary (Exact 5-Fold CV metrics from Orange Test & Score)
+with st.expander("📊 View Orange 5-Fold Cross-Validation Metrics"):
+    comparison_data = {
+        "Orange Model": ["SVM", "kNN", "Random Forest"],
+        "Saved File": ["`best_model.pkcls` 🏆", "`KNN_model.pkcls`", "`Random_forest_model.pkcls`"],
+        "AUC": ["0.657 🏆", "0.649", "0.621"],
+        "CA (Accuracy)": ["0.468 🏆", "0.441", "0.441"],
+        "Precision": ["0.515 🏆", "0.442", "0.438"],
+        "F1-Score": ["0.384", "0.441 🏆", "0.437"],
+        "MCC": ["0.238 🏆", "0.161", "0.162"],
+    }
+    st.table(pd.DataFrame(comparison_data))
+    st.success("🏆 **Orange SVM** achieves the highest **AUC (0.657)**, **Accuracy (0.468)**, **Precision (0.515)**, and **MCC (0.238)** among all 3 models evaluated in Orange Data Mining.")
 
-# 6. Display Dashboard Layout
-col1, col2 = st.columns([3, 2])
+# 6. Prediction Logic (4 features: [NumReview, Pin Code, Latitude, Longitude])
+features = np.array([[input_reviews, input_pincode, input_lat, input_lon]])
+prediction = model.predict(features)[0]
+prediction_proba = model.predict_proba(features)[0] if hasattr(model, 'predict_proba') else None
+
+# 7. Results Dashboard
+col1, col2 = st.columns([2, 1])
 
 with col1:
-  st.subheader("Interactive Map & Recommended Clusters")
+    st.subheader("Prediction Result")
+    if prediction == 2:
+        st.success("✨ **Prediction: TOP RATED (>= 4.45)**")
+        if prediction_proba is not None:
+            st.write(f"Confidence: **{prediction_proba[int(prediction)]*100:.1f}%**")
+    elif prediction == 1:
+        st.info("⭐ **Prediction: MODERATE RATED (4.05 - 4.45)**")
+        if prediction_proba is not None:
+            st.write(f"Confidence: **{prediction_proba[int(prediction)]*100:.1f}%**")
+    else:
+        st.warning("⚠️ **Prediction: STANDARD / LOW RATED (< 4.05)**")
+        if prediction_proba is not None:
+            st.write(f"Confidence: **{prediction_proba[int(prediction)]*100:.1f}%**")
 
-  # Center map at user location
-  m = folium.Map(location=[user_lat, user_lon], zoom_start=13)
-
-  # User location pin
-  folium.Marker(
-      [user_lat, user_lon],
-      popup="<b>Your Location</b>",
-      icon=folium.Icon(color="red", icon="user", prefix="fa"),
-  ).add_to(m)
-
-  # Recommended café pins
-  for _, row in recommendations.iterrows():
+    # Map visualization
+    m = folium.Map(location=[input_lat, input_lon], zoom_start=14)
+    is_top = (prediction >= 1)
     folium.Marker(
-        [row["Latitude"], row["Longitude"]],
-        popup=f"<b>{row['Company Name']}</b><br>Rating: {row['Rating']} ⭐<br>Reviews: {row['NumReview']}",
-        tooltip=row["Company Name"],
-        icon=folium.Icon(color="blue", icon="coffee", prefix="fa"),
+        [input_lat, input_lon],
+        popup="Target Location",
+        icon=folium.Icon(color="green" if is_top else "red", icon="coffee", prefix="fa")
     ).add_to(m)
-
-  st_folium(m, width="100%", height=450)
+    st_folium(m, width="100%", height=300)
 
 with col2:
-  st.subheader("Model Diagnostic & Summary")
-  st.metric(label="Assigned Spatial Cluster", value=f"Cluster #{predicted_cluster}")
-  st.metric(
-      label="Total Matching Cafés Found", value=len(filtered_df)
-  )
+    st.subheader("Model Diagnostic Profile")
+    st.write(f"**Model Name:** {selected_model_name}")
+    st.write("**Orange Workflow:** CSV Import ➔ Discretize ➔ Select Columns ➔ Learner ➔ Save Model")
+    st.write("**Features Used:** NumReview, Pin Code, Latitude, Longitude")
+    st.write("**Target Rating Bins:** `< 4.05`, `4.05 - 4.45`, `≥ 4.45`")
 
-  st.write("**Selected Cluster Stats:**")
-  cluster_stats = (
-      df_cafes[df_cafes["Cluster"] == predicted_cluster][
-          ["Rating", "NumReview"]
-      ]
-      .mean()
-      .to_dict()
-  )
-  st.json(
-      {
-          "Average Cluster Rating": round(cluster_stats["Rating"], 2),
-          "Average Review Count": int(cluster_stats["NumReview"]),
-      }
-  )
+    if "SVM" in selected_model_name:
+        st.write("**Algorithm:** Support Vector Machine (RBF Kernel)")
+        st.write("**Strength:** Best overall spatial decision boundaries.")
+    elif "kNN" in selected_model_name:
+        st.write("**Algorithm:** k-Nearest Neighbors (kNN)")
+        st.write("**Strength:** Classifies locations based on localized spatial proximity.")
+    elif "Random Forest" in selected_model_name:
+        st.write("**Algorithm:** Random Forest Ensemble")
+        st.write("**Strength:** Multi-tree decision splitting across feature thresholds.")
 
-# 7. Data Table View
-st.markdown("---")
-st.subheader("Top Recommended Locations")
-if not recommendations.empty:
-  st.dataframe(
-      recommendations[
-          ["Company Name", "Rating", "NumReview", "Address", "Pin Code"]
-      ],
-      use_container_width=True,
-  )
-else:
-  st.warning(
-      "No cafes matched your strict criteria. Try lowering the rating"
-      " threshold."
-  )
+# 8. Nearby Reference Locations
+if df is not None:
+    st.markdown("---")
+    st.subheader("Nearby Reference Locations from Core Dataset")
+    df['Distance'] = np.sqrt((df['Latitude'] - input_lat)**2 + (df['Longitude'] - input_lon)**2)
+    st.table(df.sort_values('Distance').head(5)[['Company Name', 'Rating', 'NumReview', 'Address']])

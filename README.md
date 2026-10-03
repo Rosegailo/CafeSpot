@@ -30,7 +30,26 @@ GROUPNAME_PROJECTTITLE/
    pip install -r requirements.txt
    ```
 
-2. **Run Streamlit App locally:**
+2. **Run EDA & Preprocessing:**
+   This generates visualizations in `documentation/plots/` and cleaned data.
+   ```bash
+   python notebooks/eda_and_preprocessing.py
+   ```
+
+3. **Train & Compare Models:**
+   This evaluates 3 algorithms (Logistic Regression, KNN, Random Forest) and saves the best model.
+   ```bash
+   python src/model_training.py
+   ```
+
+4. **Run Streamlit App locally:**
    ```bash
    streamlit run app/app.py
    ```
+
+## Model Details
+- **Task:** Binary Classification (Predicting 'Top Rated' vs 'Standard')
+- **Target:** Rating ≥ 4.3
+- **Features:** Latitude, Longitude, Number of Reviews
+- **Algorithms Compared:** Logistic Regression, K-Nearest Neighbors, Random Forest Classifier.
+- **Best Model:** Random Forest (based on F1-score).

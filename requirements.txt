@@ -4,3 +4,8 @@ numpy
 scikit-learn
 folium
 streamlit-folium
+matplotlib
+seaborn
+joblib
+# Optional for Orange Data Mining models (.pkcls):
+orange3
