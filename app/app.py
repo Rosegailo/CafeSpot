@@ -57,7 +57,7 @@ def parse_prediction_and_confidence(prediction, prediction_proba):
 
     return pred_idx, confidence_str
 
-# 2. Asset Loading (Orange .pkcls models)
+# 2. Asset Loading (Orange .pkcls models + domain normalization transform)
 @st.cache_resource
 def load_assets(model_name):
     file_map = {
@@ -71,20 +71,28 @@ def load_assets(model_name):
     data_path = "data/processed/cleaned_cafes.csv"
 
     if not os.path.exists(model_path):
-        return None, None
+        return None, np.array([]), np.array([]), None
+
+    offsets = []
+    factors = []
 
     try:
-        model = joblib.load(model_path)
+        model_obj = joblib.load(model_path)
     except Exception:
         with open(model_path, 'rb') as f:
-            orange_obj = OrangeUnpickler(f).load()
-        if hasattr(orange_obj, 'skl_model'):
-            model = orange_obj.skl_model
-        else:
-            model = orange_obj
+            model_obj = OrangeUnpickler(f).load()
 
+    # Extract Orange domain normalization parameters if present
+    if hasattr(model_obj, 'domain') and hasattr(model_obj.domain, 'attributes'):
+        for attr in model_obj.domain.attributes:
+            comp = getattr(attr, '_compute_value', None)
+            offsets.append(float(getattr(comp, 'offset', 0.0)))
+            factors.append(float(getattr(comp, 'factor', 1.0)))
+
+    skl_model = getattr(model_obj, 'skl_model', model_obj)
     df = pd.read_csv(data_path) if os.path.exists(data_path) else None
-    return model, df
+
+    return skl_model, np.array(offsets), np.array(factors), df
 
 # 3. Sidebar Inputs & Model Selection
 st.sidebar.header("🛠️ Model Configuration")
@@ -98,7 +106,7 @@ selected_model_name = st.sidebar.selectbox(
     ]
 )
 
-model, df = load_assets(selected_model_name)
+model, offsets, factors, df = load_assets(selected_model_name)
 
 st.sidebar.header("📍 Café Parameters")
 input_lat = st.sidebar.number_input("Latitude", value=12.9716, format="%.6f")
@@ -129,20 +137,22 @@ with st.expander("📊 View Orange 5-Fold Cross-Validation Metrics"):
     st.success("🏆 **Orange SVM** achieves the highest **AUC (0.657)**, **Accuracy (0.468)**, **Precision (0.515)**, and **MCC (0.238)** among all 3 models evaluated in Orange Data Mining.")
 
 # 6. Prediction Logic (4 features: [NumReview, Pin Code, Latitude, Longitude])
-features = np.array([[input_reviews, input_pincode, input_lat, input_lon]])
+raw_features = np.array([[input_reviews, input_pincode, input_lat, input_lon]])
+
+# Normalize features if Orange normalization factors are present
+if len(offsets) == 4 and len(factors) == 4 and np.any(factors != 1.0):
+    norm_features = (raw_features - offsets) * factors
+else:
+    norm_features = raw_features
 
 try:
-    raw_pred = model.predict(features)[0]
+    raw_pred = model.predict(norm_features)[0]
 except Exception:
-    # If model is native Orange model requiring table input or pandas DataFrame
-    try:
-        raw_pred = model(features)[0]
-    except Exception:
-        raw_pred = 0
+    raw_pred = 0
 
 try:
     if hasattr(model, 'predict_proba'):
-        raw_proba = model.predict_proba(features)[0]
+        raw_proba = model.predict_proba(norm_features)[0]
     else:
         raw_proba = None
 except Exception:
