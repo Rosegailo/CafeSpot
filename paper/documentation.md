@@ -84,20 +84,64 @@ Three distinct supervised learning algorithms were implemented and compared:
 2. **k-Nearest Neighbors (kNN):** A non-parametric instance-based algorithm classifying query points based on majority voting among the $k$ nearest spatial neighbors in normalized Euclidean feature space.
 3. **Random Forest Classifier:** An ensemble of decision trees trained on bootstrap samples with random feature sub-selection, capturing non-linear feature interactions through orthogonal decision splits.
 
-### E. Experimental Design
-The experimental pipeline was built in **Orange Data Mining** (`CSV Import` ➔ `Discretize` ➔ `Select Columns` ➔ `Learners` ➔ `Test and Score` ➔ `Confusion Matrix` ➔ `Save Model`) and verified in Python:
-* **Validation Strategy:** 5-Fold Stratified Cross-Validation ($K=5$) to preserve class proportion balance across folds.
-* **Model Export:** Model parameters, feature domains, and normalization offsets/factors were exported into binary `.pkcls` formats:
-  * `best_model.pkcls` (SVM)
-  * `KNN_model.pkcls` (kNN)
-  * `Random_forest_model.pkcls` (Random Forest)
+### E. Experimental Design & Implementation Code
+The experimental pipeline was built in **Orange Data Mining** (`CSV Import` ➔ `Discretize` ➔ `Select Columns` ➔ `Learners` ➔ `Test and Score` ➔ `Confusion Matrix` ➔ `Save Model`) and verified in Python.
+
+#### Core Python Script for Orange Model Loading & Inference (`src/test_load_models.py`):
+```python
+import os
+import pickle
+import joblib
+import numpy as np
+
+# Custom unpickler for Orange Data Mining .pkcls model files
+class OrangeUnpickler(pickle.Unpickler):
+    """Fallback unpickler to extract underlying scikit-learn estimator from Orange .pkcls files."""
+    def find_class(self, module, name):
+        if module.startswith('Orange'):
+            return DummyOrangeClass
+        return super().find_class(module, name)
+
+class DummyOrangeClass:
+    def __init__(self, *args, **kwargs):
+        pass
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+
+# Orange models to test
+orange_files = {
+    "Orange SVM": "models/best_model.pkcls",
+    "Orange kNN": "models/KNN_model.pkcls",
+    "Orange Random Forest": "models/Random_forest_model.pkcls"
+}
+
+labels = {0: "< 4.05 (Standard/Low)", 1: "4.05 - 4.45 (Moderate)", 2: ">= 4.45 (Top Rated)"}
+
+for model_title, pkcls_path in orange_files.items():
+    if os.path.exists(pkcls_path):
+        try:
+            try:
+                orange_model = joblib.load(pkcls_path)
+            except Exception:
+                with open(pkcls_path, 'rb') as f:
+                    orange_obj = OrangeUnpickler(f).load()
+                orange_model = orange_obj.skl_model if hasattr(orange_obj, 'skl_model') else orange_obj
+
+            sample_orange = np.array([[150, 560001, 12.9716, 77.5946]])
+            prediction = orange_model.predict(sample_orange)[0]
+            probabilities = orange_model.predict_proba(sample_orange)[0] if hasattr(orange_model, 'predict_proba') else None
+
+            print(f"✅ {model_title} Prediction: {prediction} -> {labels.get(prediction, 'Unknown')}")
+        except Exception as e:
+            print(f"❌ Error loading {model_title}: {e}")
+```
 
 ### F. Evaluation Metrics
 Models were benchmarked across five standard statistical classification metrics:
 * **Area Under ROC Curve (AUC):** Measures aggregate class separation capability across all thresholds.
 * **Classification Accuracy (CA):** Proportion of correctly predicted instances: $\text{CA} = \frac{TP + TN}{TP + TN + FP + FN}$.
 * **Precision:** Positive predictive value: $\text{Precision} = \frac{TP}{TP + FP}$.
-* **F1-Score:** Harmonic mean of precision and recall: $\text{F1} = 2 \cdot \frac{\text{Precision} \cdot \text{Recall}}{\text{Precision} + \text{Recall}}$.
+* **F1-Score:** Harmonic mean of precision and recall: $\text{F1} = 2 \cdot \frac{\text{Precision} \cdot \text{Recall}}{\text{Precision}} + \text{Recall}$.
 * **Matthews Correlation Coefficient (MCC):** Balanced quality measure for multi-class classification:
   $$\text{MCC} = \frac{TP \cdot TN - FP \cdot FN}{\sqrt{(TP+FP)(TP+FN)(TN+FP)(TN+FN)}}$$
 
@@ -211,9 +255,52 @@ This study successfully developed and deployed **Byte & Brew: CafeSpot Recommend
 * **Orange kNN Output:** `Prediction: MODERATE RATED (4.05 - 4.45)` | Confidence: `60.0%`
 * **Orange Random Forest Output:** `Prediction: STANDARD / LOW RATED (< 4.05)` | Confidence: `35.8%`
 
-### Appendix D — Application Screenshots
-* Streamlit Application live URL: `https://cafespot-xcjc4cmlduy3hvkikas3bk.streamlit.app`
-* Interactive GIS Map rendering with Leaflet/Folium tiles and coffee shop location marker.
+### Appendix D — Application Source Code Snippets (`app/app.py`)
+
+#### 1. Orange Model Unpickling & Normalization Engine:
+```python
+def load_assets(model_name):
+    file_map = {
+        "Orange SVM (best_model.pkcls)": "best_model.pkcls",
+        "Orange kNN (KNN_model.pkcls)": "KNN_model.pkcls",
+        "Orange Random Forest (Random_forest_model.pkcls)": "Random_forest_model.pkcls",
+    }
+    filename = file_map.get(model_name, "best_model.pkcls")
+    model_path = f"models/{filename}"
+    
+    offsets, factors = [], []
+    try:
+        model_obj = joblib.load(model_path)
+    except Exception:
+        with open(model_path, 'rb') as f:
+            model_obj = OrangeUnpickler(f).load()
+
+    if hasattr(model_obj, 'domain') and hasattr(model_obj.domain, 'attributes'):
+        for attr in model_obj.domain.attributes:
+            comp = getattr(attr, '_compute_value', None)
+            offsets.append(float(getattr(comp, 'offset', 0.0)))
+            factors.append(float(getattr(comp, 'factor', 1.0)))
+
+    skl_model = getattr(model_obj, 'skl_model', model_obj)
+    return skl_model, np.array(offsets), np.array(factors)
+```
+
+#### 2. Feature Normalization & Prediction Parsing:
+```python
+# Raw inputs: [NumReview, Pin Code, Latitude, Longitude]
+raw_features = np.array([[input_reviews, input_pincode, input_lat, input_lon]])
+
+# Domain normalization transformation: (x - offset) * factor
+if len(offsets) == 4 and len(factors) == 4 and np.any(factors != 1.0):
+    norm_features = (raw_features - offsets) * factors
+else:
+    norm_features = raw_features
+
+raw_pred = model.predict(norm_features)[0]
+raw_proba = model.predict_proba(norm_features)[0] if hasattr(model, 'predict_proba') else None
+
+pred_idx, confidence_str = parse_prediction_and_confidence(raw_pred, raw_proba)
+```
 
 ### Appendix E — Group Contribution Record
 * **Data Collection & Preprocessing:** Rosemarie Gailo
