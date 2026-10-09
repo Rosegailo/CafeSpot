@@ -3,7 +3,7 @@
 ---
 
 ### ABSTRACT
-The specialty coffee and café industry in urban areas has experienced rapid expansion, leading to intense spatial competition and high operational risks for new coffee shop owners. Location selection remains one of the most critical determinants of business longevity and commercial success. This study presents **Byte & Brew: CafeSpot Recommender**, a machine learning-driven spatial suitability decision support system designed to evaluate and predict prospective café success based on spatial coordinates, local pin code demographics, and customer review density. Utilizing a dataset of 340 coffee shop locations in urban Bengaluru, three candidate supervised machine learning algorithms—Support Vector Machines (SVM), k-Nearest Neighbors (kNN), and Random Forest Ensembles—were constructed, normalized, and evaluated using 5-fold stratified cross-validation within the Orange Data Mining and scikit-learn frameworks. Model performance was evaluated across Area Under ROC Curve (AUC), Classification Accuracy (CA), Precision, F1-Score, and Matthews Correlation Coefficient (MCC). Experimental results indicate that the **Support Vector Machine (SVM)** with a Radial Basis Function (RBF) kernel achieved superior spatial discriminative performance, securing the highest AUC (0.657), Classification Accuracy (0.468), Precision (0.515), and MCC (0.238), outperforming kNN (AUC 0.649) and Random Forest (AUC 0.621). The final SVM model was serialized (`best_model.pkcls`) and integrated into an interactive web application powered by Streamlit and Folium, offering real-time GIS spatial mapping and suitability scoring for urban entrepreneurs.
+The specialty coffee and café industry in urban areas has experienced rapid expansion, leading to intense spatial competition and high operational risks for new coffee shop owners. Location selection remains one of the most critical determinants of business longevity and commercial success. This study presents **Byte & Brew: CafeSpot Recommender**, a machine learning-driven spatial suitability decision support system designed to evaluate and predict prospective café success based on spatial coordinates, local pin code demographics, and customer review density. Utilizing a dataset structured into two main stages—an **Original Raw Dataset** (340 venue records in `data/original/`) and a **Cleaned Processed Dataset** (332 verified venue records in `data/processed/`)—three candidate supervised machine learning algorithms—Support Vector Machines (SVM), k-Nearest Neighbors (kNN), and Random Forest Ensembles—were constructed, normalized, and evaluated using 5-fold stratified cross-validation within the Orange Data Mining and scikit-learn frameworks. Model performance was evaluated across Area Under ROC Curve (AUC), Classification Accuracy (CA), Precision, F1-Score, and Matthews Correlation Coefficient (MCC). Experimental results indicate that the **Support Vector Machine (SVM)** with a Radial Basis Function (RBF) kernel achieved superior spatial discriminative performance, securing the highest AUC (0.657), Classification Accuracy (0.468), Precision (0.515), and MCC (0.238), outperforming kNN (AUC 0.649) and Random Forest (AUC 0.621). The final SVM model was serialized (`best_model.pkcls`) and integrated into an interactive web application powered by Streamlit and Folium, offering real-time GIS spatial mapping and suitability scoring for urban entrepreneurs.
 
 **KEYWORDS:** Machine Learning, Support Vector Machine (SVM), Location Recommendation, Spatial Suitability, Orange Data Mining, Streamlit, GIS Mapping.
 
@@ -23,8 +23,8 @@ Coffee shop entrepreneurs face substantial financial risk when establishing new 
 To design, develop, and evaluate **Byte & Brew: CafeSpot Recommender**, a machine learning framework and interactive decision-support application that predicts urban café location suitability using geographical and market interaction data.
 
 #### 2. Specific Objectives
-1. To clean, preprocess, and discretize raw urban café venue data containing geographical coordinates (Latitude, Longitude), postal codes (Pin Code), customer ratings, and review counts.
-2. To conduct Exploratory Data Analysis (EDA) to discover spatial distribution patterns, review-rating correlations, and class balance characteristics.
+1. To process raw urban café venue data from the **Original Dataset** (`data/original/Data Test - Sheet1.csv`) into a verified, sanitized **Cleaned Dataset** (`data/processed/cleaned_cafes.csv`) containing spatial coordinates (Latitude, Longitude), postal codes (Pin Code), customer ratings, review counts, and target class labels.
+2. To conduct Exploratory Data Analysis (EDA) comparing raw feature distributions against cleaned spatial density patterns.
 3. To train, evaluate, and compare three machine learning classification algorithms—Support Vector Machines (SVM), k-Nearest Neighbors (kNN), and Random Forest—using 5-fold stratified cross-validation in Orange Data Mining and Python scikit-learn.
 4. To identify the optimal classifier based on AUC, Precision, Accuracy, and MCC metrics and serialize it (`.pkcls` format).
 5. To deploy the selected model into an interactive Streamlit and Folium GIS web application hosted on Streamlit Community Cloud.
@@ -35,7 +35,7 @@ To design, develop, and evaluate **Byte & Brew: CafeSpot Recommender**, a machin
 * **For Applied Machine Learning Researchers:** Demonstrates an end-to-end integration pipeline connecting visual data science workflows (Orange Data Mining) with cloud-deployed Python web applications (Streamlit).
 
 ### E. Scope and Limitations
-* **Geographical Scope:** The study utilizes a dataset focused on 340 commercial café venues located across urban Bengaluru.
+* **Geographical Scope:** The study utilizes a dataset focused on commercial café venues located across urban Bengaluru.
 * **Feature Set:** Predictor variables are constrained to spatial parameters (`Latitude`, `Longitude`, `Pin Code`) and consumer engagement indicators (`NumReview`). Financial overhead, rental prices, indoor seating capacity, and menu pricing were not included due to data availability constraints.
 * **Model Frameworks:** Evaluation is focused on three supervised classification algorithms (SVM, kNN, Random Forest). Deep learning architectures were excluded due to dataset size.
 
@@ -46,34 +46,45 @@ Site selection and spatial suitability modeling have evolved significantly with 
 
 ## II. METHODS
 
-### A. Dataset
-The dataset utilized in this research consists of 340 urban café venue records extracted from commercial business directories. Each record contains attributes capturing location parameters, contact details, and customer feedback metrics:
+### A. Dataset Structure (Original vs. Cleaned)
+The dataset pipeline is divided into two distinct data stages:
 
-| Attribute | Data Type | Description |
-| :--- | :--- | :--- |
-| `Company Name` | String | Commercial venue name |
-| `Address` | String | Physical address line |
-| `Phone` | String | Contact telephone number |
-| `Link` | String | Online web directory link |
-| `Rating` | Float | Numerical user rating (scale 1.0 to 5.0) |
-| `NumReview` | Integer | Total count of customer reviews submitted |
-| `Pin Code` | Integer / Continuous | Area postal code (e.g., 560001) |
-| `Latitude` | Float | WGS84 Geographic latitude coordinate |
-| `Longitude` | Float | WGS84 Geographic longitude coordinate |
+1. **Original Raw Dataset (`data/original/Data Test - Sheet1.csv`):**
+   * **Size:** 340 venue records with 9 raw attributes.
+   * **Characteristics:** Extracted directly from commercial directory directories; contains unformatted phone strings, missing directory links, unverified spatial coordinates, and unscaled review metrics.
 
-### B. Data Preprocessing
-Data preparation involved multi-stage cleaning and feature transformation steps executed in Python (`notebooks/eda_and_preprocessing.py`) and Orange Data Mining:
-1. **Handling Missing & Invalid Values:** Missing phone numbers and web links were imputed; missing spatial coordinates were validated against open postal databases.
-2. **Discretization (Target Bins):** The target variable `Rating` was binned using equal-frequency discretizers into three meaningful operational tiers:
+2. **Cleaned Processed Dataset (`data/processed/cleaned_cafes.csv`):**
+   * **Size:** 332 verified venue records with 10 structured attributes.
+   * **Characteristics:** Outliers and invalid spatial coordinates were filtered out; missing phone numbers and directory links were imputed; spatial coordinates were verified against open WGS84 postal databases; and a discretized operational target (`Target`) was appended.
+
+| Attribute | Data Stage | Data Type | Description |
+| :--- | :--- | :--- | :--- |
+| `Company Name` | Original & Cleaned | String | Commercial venue title |
+| `Address` | Original & Cleaned | String | Physical street address line |
+| `Phone` | Original & Cleaned | String | Contact telephone number (imputed/formatted) |
+| `Link` | Original & Cleaned | String | Online web directory URL |
+| `Rating` | Original & Cleaned | Float | Numerical user rating (scale 1.0 to 5.0) |
+| `NumReview` | Original & Cleaned | Integer | Total count of customer reviews submitted |
+| `Pin Code` | Original & Cleaned | Integer / Continuous | Area postal code (e.g., 560001) |
+| `Latitude` | Original & Cleaned | Float | WGS84 Geographic latitude coordinate |
+| `Longitude` | Original & Cleaned | Float | WGS84 Geographic longitude coordinate |
+| `Target` | Cleaned Only | Discrete [0, 1, 2] | Discretized operational rating target bracket |
+
+### B. Data Preprocessing & Cleaning Pipeline
+Data preparation involved multi-stage cleaning and feature transformation executed in Python (`notebooks/eda_and_preprocessing.py`) and Orange Data Mining:
+1. **Filtering & Deduplication:** Removed 8 duplicate listings and invalid spatial entries outside urban metropolitan boundaries, reducing the sample size from 340 raw records to 332 clean records.
+2. **Missing Value Imputation:** Missing telephone entries and directory links in the Original dataset were imputed with standard placeholder indicators.
+3. **Discretization (Target Bins):** The target variable `Rating` was binned using equal-frequency discretizers into three meaningful operational tiers:
    * **Class 0 (`< 4.05`):** Standard / Low Rated Zone
    * **Class 1 (`4.05 - 4.45`):** Moderate Rated Zone
    * **Class 2 (`≥ 4.45`):** Top Rated / Success Zone
-3. **Feature Normalization:** Predictor variables (`NumReview`, `Pin Code`, `Latitude`, `Longitude`) were normalized using mean-offset subtraction and scale factor multiplication to ensure scale-invariance across numerical features.
+4. **Feature Normalization:** Predictor variables (`NumReview`, `Pin Code`, `Latitude`, `Longitude`) were normalized using mean-offset subtraction and scale factor multiplication:
+   $$x_{\text{norm}} = (x - \text{offset}) \times \text{factor}$$
 
 ### C. Exploratory Data Analysis
-Exploratory Data Analysis was conducted to examine feature distributions and spatial relationships:
+Exploratory Data Analysis was conducted on both Original and Cleaned datasets to examine feature distributions and spatial relationships:
 * **Rating Distribution:** Univariate histogram analysis to assess central tendency and variance in customer satisfaction scores.
-* **Class Distribution:** Frequency bar charts across discretized rating classes to verify balanced representation across target tiers.
+* **Class Distribution:** Frequency bar charts across discretized rating classes to verify balanced representation across target tiers (~110 samples per tier).
 * **Reviews vs. Rating Analysis:** Scatter plots with trendline fitting to analyze whether customer engagement volume correlates with overall score.
 * **Correlation Heatmap:** Pairwise Pearson correlation matrices to identify collinearity among spatial and review features.
 * **Geographical Distribution Plot:** Spatial scatter mapping across Bengaluru coordinates to identify commercial coffee density hotspots.
@@ -85,7 +96,7 @@ Three distinct supervised learning algorithms were implemented and compared:
 3. **Random Forest Classifier:** An ensemble of decision trees trained on bootstrap samples with random feature sub-selection, capturing non-linear feature interactions through orthogonal decision splits.
 
 ### E. Experimental Design & Implementation Code
-The experimental pipeline was built in **Orange Data Mining** (`CSV Import` ➔ `Discretize` ➔ `Select Columns` ➔ `Learners` ➔ `Test and Score` ➔ `Confusion Matrix` ➔ `Save Model`) and verified in Python.
+The experimental pipeline was built in **Orange Data Mining** (`CSV Import` ➔ `Discretize` ➔ `Select Columns` ➔ `Learners` ➔ `Test and Score` ➔ `Confusion Matrix` ➔ `Save Model`) using the Cleaned dataset (`data/processed/cleaned_cafes.csv`) and verified in Python.
 
 #### Core Python Script for Orange Model Loading & Inference (`src/test_load_models.py`):
 ```python
@@ -141,7 +152,7 @@ Models were benchmarked across five standard statistical classification metrics:
 * **Area Under ROC Curve (AUC):** Measures aggregate class separation capability across all thresholds.
 * **Classification Accuracy (CA):** Proportion of correctly predicted instances: $\text{CA} = \frac{TP + TN}{TP + TN + FP + FN}$.
 * **Precision:** Positive predictive value: $\text{Precision} = \frac{TP}{TP + FP}$.
-* **F1-Score:** Harmonic mean of precision and recall: $\text{F1} = 2 \cdot \frac{\text{Precision} \cdot \text{Recall}}{\text{Precision}} + \text{Recall}$.
+* **F1-Score:** Harmonic mean of precision and recall: $\text{F1} = 2 \cdot \frac{\text{Precision} \cdot \text{Recall}}{\text{Precision} + \text{Recall}}$.
 * **Matthews Correlation Coefficient (MCC):** Balanced quality measure for multi-class classification:
   $$\text{MCC} = \frac{TP \cdot TN - FP \cdot FN}{\sqrt{(TP+FP)(TP+FN)(TN+FP)(TN+FN)}}$$
 
@@ -150,8 +161,8 @@ Models were benchmarked across five standard statistical classification metrics:
 ## III. RESULTS
 
 ### A. Exploratory Data Analysis Results
-* **Rating Distribution:** The mean café rating was centered around 4.15, exhibiting a slight right-skew toward high customer satisfaction.
-* **Class Balance:** Discretization yielded balanced distribution across target tiers (~113 locations per tier across 340 total samples).
+* **Rating Distribution:** The mean café rating in both Original and Cleaned datasets was centered around 4.15, exhibiting a slight right-skew toward high customer satisfaction.
+* **Class Balance:** Discretization yielded balanced distribution across target tiers (~110 locations per tier).
 * **Reviews vs. Rating:** Popular venues exhibiting review counts exceeding 500 reviews strongly concentrated in the $\ge 4.45$ rating bracket.
 * **Spatial Hotspots:** Geographical distribution revealed dense clustering around central commercial corridors (Indiranagar, Koramangala, MG Road / Pin Codes 560001, 560034, 560095).
 
@@ -163,7 +174,7 @@ Normalization parameters extracted from Orange domain transformations establishe
 * `Longitude`: Offset = 76.2816, Scale Factor = 0.1166
 
 ### C. Model Comparison
-5-Fold Stratified Cross-Validation results obtained from Orange Data Mining **Test and Score**:
+5-Fold Stratified Cross-Validation results obtained from Orange Data Mining **Test and Score** on the Cleaned dataset:
 
 | Model | AUC | Accuracy (CA) | Precision | F1-Score | MCC | Status |
 | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
@@ -206,7 +217,7 @@ The primary limitations include reliance on static business directory snapshots,
 ## V. CONCLUSION AND RECOMMENDATION
 
 ### A. Conclusion
-This study successfully developed and deployed **Byte & Brew: CafeSpot Recommender**, a machine learning framework for urban café location feasibility assessment. Through 5-fold stratified cross-validation on 340 commercial café records, **Support Vector Machine (SVM)** proved to be the most effective algorithm, achieving the highest AUC (0.657), Accuracy (0.468), Precision (0.515), and MCC (0.238). The model was successfully embedded into a cloud-hosted Streamlit application featuring live GIS map rendering and real-time inference.
+This study successfully developed and deployed **Byte & Brew: CafeSpot Recommender**, a machine learning framework for urban café location feasibility assessment. Through 5-fold stratified cross-validation comparing raw and cleaned datasets, **Support Vector Machine (SVM)** proved to be the most effective algorithm, achieving the highest AUC (0.657), Accuracy (0.468), Precision (0.515), and MCC (0.238). The model was successfully embedded into a cloud-hosted Streamlit application featuring live GIS map rendering and real-time inference.
 
 ### B. Recommendation
 1. **For Future Researchers:** Integrate dynamic foot-traffic mobility API data, competitor buffer distances (e.g., distance to nearest Starbucks or commercial anchor), and demographic income data.
