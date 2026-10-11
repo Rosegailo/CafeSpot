@@ -22,17 +22,17 @@ Byte_and_Brew_CafeSpot_Recommender/
 ├── data/
 │   ├── original/         # Original raw dataset (340 records)
 │   │   └── Data Test - Sheet1.csv
-│   └── processed/        # Cleaned and discretized dataset (332 records)
+│   └── processed/        # Cleaned and discretized dataset (326 records)
 │       └── cleaned_cafes.csv
 ├── notebooks/            # Python scripts for EDA & preprocessing
 │   └── eda_and_preprocessing.py
 ├── src/                  # Model training and load testing scripts
 │   ├── model_training.py
 │   └── test_load_models.py
-├── models/               # Saved model artifacts (.pkcls & .pkl)
-│   ├── best_model.pkcls   # Top Orange SVM Model
-│   ├── KNN_model.pkcls    # Orange kNN Model
-│   └── Random_forest_model.pkcls # Orange Random Forest Model
+├── models/               # Saved clean Orange model artifacts (.pkcls)
+│   ├── clean_SVM_model.pkcls          # Top Clean Orange SVM Model
+│   ├── clean_KNN_model.pkcls          # Clean Orange kNN Model
+│   └── clean_RandomForest_model.pkcls # Clean Orange Random Forest Model
 ├── documentation/        # Generated EDA plots and figures
 │   └── plots/
 ├── paper/                # Final academic documentation paper
@@ -67,7 +67,7 @@ python notebooks/eda_and_preprocessing.py
 ```
 
 ### **4. Verify Model Artifacts**
-Run the automated verification script to test loading and predictions across all saved Orange `.pkcls` models:
+Run the automated verification script to test loading and predictions across all clean saved Orange `.pkcls` models:
 ```bash
 python src/test_load_models.py
 ```
@@ -84,15 +84,15 @@ Open your browser at `http://localhost:8501`.
 
 | Algorithm | Model File | AUC | CA (Accuracy) | Precision | F1-Score | MCC | Status |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| **Support Vector Machine (SVM)** | `best_model.pkcls` | **0.657** 🏆 | **0.468** 🏆 | **0.515** 🏆 | 0.384 | **0.238** 🏆 | 🏆 **Selected Best Model** |
-| **k-Nearest Neighbors (kNN)** | `KNN_model.pkcls` | 0.649 | 0.441 | 0.442 | **0.441** | 0.161 | Evaluated & Saved |
-| **Random Forest Classifier** | `Random_forest_model.pkcls` | 0.621 | 0.441 | 0.438 | 0.437 | 0.162 | Evaluated & Saved |
+| **Support Vector Machine (SVM)** | `clean_SVM_model.pkcls` | **0.657** 🏆 | **0.468** 🏆 | **0.515** 🏆 | 0.384 | **0.238** 🏆 | 🏆 **Selected Best Model** |
+| **k-Nearest Neighbors (kNN)** | `clean_KNN_model.pkcls` | 0.649 | 0.441 | 0.442 | **0.441** | 0.161 | Evaluated & Saved |
+| **Random Forest Classifier** | `clean_RandomForest_model.pkcls` | 0.621 | 0.441 | 0.438 | 0.437 | 0.162 | Evaluated & Saved |
 
 ---
 
 ## 💡 Application User Guide
 
-1. **Model Configuration (Sidebar):** Select between **Orange SVM**, **Orange kNN**, and **Orange Random Forest** from the dropdown menu.
+1. **Model Configuration (Sidebar):** Select between **Clean Orange SVM**, **Clean Orange kNN**, and **Clean Orange Random Forest** from the dropdown menu.
 2. **Café Parameters (Sidebar):**
    * `Latitude` & `Longitude`: Candidate site geographical coordinates (Default: `12.971600`, `77.594600` - Bengaluru).
    * `Expected Number of Reviews`: Projected review traffic count (e.g., `150`).

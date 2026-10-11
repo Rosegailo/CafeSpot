@@ -8,7 +8,7 @@
 ---
 
 ### ABSTRACT
-The specialty coffee and café industry in urban areas has experienced rapid expansion, leading to intense spatial competition and high operational risks for prospective coffee shop owners. Location selection remains one of the most critical determinants of business longevity and commercial success. This study presents **Byte & Brew: CafeSpot Recommender**, an end-to-end machine learning-driven spatial suitability decision support system designed to evaluate and predict prospective café success based on spatial coordinates, local pin code demographics, and customer review density. Utilizing a dataset structured into two distinct stages—an **Original Raw Dataset** (340 venue records in `data/original/`) and a **Cleaned Processed Dataset** (326 verified venue records in `data/processed/` after filtering duplicates, out-of-bounds coordinates, and missing contact information)—three candidate supervised machine learning algorithms—Support Vector Machines (SVM), k-Nearest Neighbors (kNN), and Random Forest Ensembles—were constructed, normalized, and evaluated using 5-fold stratified cross-validation within the Orange Data Mining and scikit-learn frameworks. Model performance was evaluated across Area Under ROC Curve (AUC), Classification Accuracy (CA), Precision, F1-Score, and Matthews Correlation Coefficient (MCC). Experimental results indicate that the **Support Vector Machine (SVM)** with a Radial Basis Function (RBF) kernel achieved superior spatial discriminative performance, securing the highest AUC (0.657), Classification Accuracy (0.468), Precision (0.515), and MCC (0.238), outperforming kNN (AUC 0.649) and Random Forest (AUC 0.621). The final SVM model was serialized (`best_model.pkcls`) and integrated into an interactive web application powered by Streamlit and Folium, offering real-time GIS spatial mapping and suitability scoring for urban entrepreneurs.
+The specialty coffee and café industry in urban areas has experienced rapid expansion, leading to intense spatial competition and high operational risks for prospective coffee shop owners. Location selection remains one of the most critical determinants of business longevity and commercial success. This study presents **Byte & Brew: CafeSpot Recommender**, an end-to-end machine learning-driven spatial suitability decision support system designed to evaluate and predict prospective café success based on spatial coordinates, local pin code demographics, and customer review density. Utilizing a dataset structured into two distinct stages—an **Original Raw Dataset** (340 venue records in `data/original/`) and a **Cleaned Processed Dataset** (326 verified venue records in `data/processed/` after filtering duplicates, out-of-bounds coordinates, and missing contact information)—three candidate supervised machine learning algorithms—Support Vector Machines (SVM), k-Nearest Neighbors (kNN), and Random Forest Ensembles—were constructed, normalized, and evaluated using 5-fold stratified cross-validation within the Orange Data Mining and scikit-learn frameworks. Model performance was evaluated across Area Under ROC Curve (AUC), Classification Accuracy (CA), Precision, F1-Score, and Matthews Correlation Coefficient (MCC). Experimental results indicate that the **Support Vector Machine (SVM)** with a Radial Basis Function (RBF) kernel achieved superior spatial discriminative performance, securing the highest AUC (0.657), Classification Accuracy (0.468), Precision (0.515), and MCC (0.238), outperforming kNN (AUC 0.649) and Random Forest (AUC 0.621). The final SVM model was serialized (`clean_SVM_model.pkcls`) and integrated into an interactive web application powered by Streamlit and Folium, offering real-time GIS spatial mapping and suitability scoring for urban entrepreneurs.
 
 **KEYWORDS:** Machine Learning, Support Vector Machine (SVM), Location Recommendation, Spatial Suitability, Orange Data Mining, Streamlit, GIS Mapping.
 
@@ -31,7 +31,7 @@ To design, train, evaluate, and deploy **Byte & Brew: CafeSpot Recommender**, a 
 1. To process raw urban café venue data from the **Original Dataset** (`data/original/Data Test - Sheet1.csv`, 340 records) into a verified, sanitized **Cleaned Dataset** (`data/processed/cleaned_cafes.csv`, 326 records) containing spatial coordinates (Latitude, Longitude), postal codes (Pin Code), customer ratings, review counts, and target class labels.
 2. To conduct rigorous Exploratory Data Analysis (EDA) with at least five meaningful visualizations comparing raw feature distributions against cleaned spatial density patterns [3].
 3. To train, evaluate, and compare three permitted classification algorithms—Support Vector Machines (SVM), k-Nearest Neighbors (kNN), and Random Forest—using 5-fold stratified cross-validation in Orange Data Mining and Python scikit-learn [3], [4].
-4. To identify the optimal classifier based on AUC, Precision, Accuracy, and MCC metrics, explicitly addressing the cost of False Positives versus False Negatives, and serialize the best model (`.pkcls` format).
+4. To identify the optimal classifier based on AUC, Precision, Accuracy, and MCC metrics, explicitly addressing the cost of False Positives versus False Negatives, and serialize the best model (`clean_SVM_model.pkcls`).
 5. To deploy the selected model into an interactive Streamlit and Folium GIS web application hosted on Streamlit Community Cloud (`https://cafespot-xcjc4cmlduy3hvkikas3bk.streamlit.app`).
 
 ### D. Significance of the Study
@@ -102,7 +102,7 @@ Three permitted supervised classification algorithms were implemented and compar
 3. **Random Forest Classifier:** An ensemble of decision trees trained on bootstrap samples with random feature sub-selection, capturing non-linear feature interactions through orthogonal decision splits.
 
 ### E. Experimental Design & Implementation Code
-The experimental pipeline was built in **Orange Data Mining** (`CSV Import` ➔ `Discretize` ➔ `Select Columns` ➔ `Learners` ➔ `Test and Score` ➔ `Confusion Matrix` ➔ `Save Model`) using 5-fold stratified cross-validation on the Cleaned dataset (`data/processed/cleaned_cafes.csv`, 326 records) and verified in Python.
+The experimental pipeline was built in **Orange Data Mining** (`CSV Import` ➔ `Select Columns` ➔ `Learners` ➔ `Test and Score` ➔ `Confusion Matrix` ➔ `Save Model`) using 5-fold stratified cross-validation on the Cleaned dataset (`data/processed/cleaned_cafes.csv`, 326 records) and verified in Python.
 
 #### Core Python Script for Model Loading & Evaluation (`src/test_load_models.py`):
 ```python
@@ -125,11 +125,11 @@ class DummyOrangeClass:
     def __setstate__(self, state):
         self.__dict__.update(state)
 
-# Orange models to test
+# Clean Orange models to test
 orange_files = {
-    "Orange SVM": "models/best_model.pkcls",
-    "Orange kNN": "models/KNN_model.pkcls",
-    "Orange Random Forest": "models/Random_forest_model.pkcls"
+    "Clean Orange SVM": "models/clean_SVM_model.pkcls",
+    "Clean Orange kNN": "models/clean_KNN_model.pkcls",
+    "Clean Orange Random Forest": "models/clean_RandomForest_model.pkcls"
 }
 
 labels = {0: "< 4.05 (Standard/Low)", 1: "4.05 - 4.45 (Moderate)", 2: ">= 4.45 (Top Rated)"}
@@ -158,7 +158,7 @@ Models were benchmarked across five standard statistical classification metrics:
 * **Area Under ROC Curve (AUC):** Measures aggregate class separation capability across all decision thresholds.
 * **Classification Accuracy (CA):** Proportion of correctly predicted instances: $\text{CA} = \frac{TP + TN}{TP + TN + FP + FN}$.
 * **Precision (Primary Metric):** Positive predictive value: $\text{Precision} = \frac{TP}{TP + FP}$.
-* **F1-Score:** Harmonic mean of precision and recall: $\text{F1} = 2 \cdot \frac{\text{Precision} \cdot \text{Recall}}{\text{Precision} + \text{Recall}}$.
+* **F1-Score:** Harmonic mean of precision and recall: $\text{F1} = 2 \cdot \frac{\text{Precision} \cdot \text{Recall}}{\text{Precision}} + \text{Recall}$.
 * **Matthews Correlation Coefficient (MCC):** Balanced quality measure for multi-class classification:
   $$\text{MCC} = \frac{TP \cdot TN - FP \cdot FN}{\sqrt{(TP+FP)(TP+FN)(TN+FP)(TN+FN)}}$$
 
@@ -186,16 +186,16 @@ Normalization parameters extracted from Orange domain transformations establishe
 
 | Model | AUC | Accuracy (CA) | Precision | F1-Score | MCC | Status |
 | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| **SVM (RBF Kernel)** | **0.657** 🏆 | **0.468** 🏆 | **0.515** 🏆 | 0.384 | **0.238** 🏆 | 🏆 **Exported Best Model (`best_model.pkcls`)** |
-| **k-Nearest Neighbors (kNN)** | 0.649 | 0.441 | 0.442 | **0.441** | 0.161 | Saved (`KNN_model.pkcls`) |
-| **Random Forest** | 0.621 | 0.441 | 0.438 | 0.437 | 0.162 | Saved (`Random_forest_model.pkcls`) |
+| **SVM (RBF Kernel)** | **0.657** 🏆 | **0.468** 🏆 | **0.515** 🏆 | 0.384 | **0.238** 🏆 | 🏆 **Exported Best Model (`clean_SVM_model.pkcls`)** |
+| **k-Nearest Neighbors (kNN)** | 0.649 | 0.441 | 0.442 | **0.441** | 0.161 | Saved (`clean_KNN_model.pkcls`) |
+| **Random Forest** | 0.621 | 0.441 | 0.438 | 0.437 | 0.162 | Saved (`clean_RandomForest_model.pkcls`) |
 
 ### D. Final Test Results
 Pairwise ROC AUC statistical hypothesis probability tests confirmed that the **Support Vector Machine (SVM)** holds a **91.2% probability** of outperforming Random Forest ($p=0.912$) and a **65.3% probability** of outperforming kNN ($p=0.653$).
 
 ### E. Application Results
 The serialized `.pkcls` models were successfully integrated into the Streamlit web application (`app/app.py`). The application features:
-1. Dynamic model selection between **Orange SVM**, **Orange kNN**, and **Orange Random Forest**.
+1. Dynamic model selection between **Clean Orange SVM**, **Clean Orange kNN**, and **Clean Orange Random Forest**.
 2. Real-time feature normalization applying domain offsets/factors.
 3. Interactive Folium GIS mapping displaying candidate location markers.
 4. Live confidence score calculation and nearby reference café recommendations.
@@ -209,7 +209,7 @@ The serialized `.pkcls` models were successfully integrated into the Streamlit w
 The experimental findings confirm that spatial coordinates (`Latitude`, `Longitude`) combined with hyper-local commercial zone identifiers (`Pin Code`) and consumer traffic intensity (`NumReview`) contain sufficient signal to predict café rating performance [1]. The SVM model achieved superior Precision (0.515) and AUC (0.657), demonstrating that kernel-based margin maximization effectively isolates continuous pockets of successful commercial activity [4].
 
 ### B. Model Comparison and Selected Model
-While kNN achieved a slightly higher F1-score (0.441 vs 0.384) due to balanced class recall, **SVM was selected as the deployable solution (`best_model.pkcls`)** because it achieved the highest Precision (0.515) and MCC (0.238). High precision protects entrepreneurs from high-cost false positive recommendations.
+While kNN achieved a slightly higher F1-score (0.441 vs 0.384) due to balanced class recall, **SVM was selected as the deployable solution (`clean_SVM_model.pkcls`)** because it achieved the highest Precision (0.515) and MCC (0.238). High precision protects entrepreneurs from high-cost false positive recommendations.
 
 ### C. Errors and Trade-offs
 Misclassifications primarily occurred in transitional postal code border regions where high competition density causes rating variance despite favorable location coordinates.
@@ -270,9 +270,9 @@ This study successfully developed and deployed **Byte & Brew: CafeSpot Recommend
   * Longitude: `77.594600`
   * Expected Reviews: `150`
   * Pin Code: `560001`
-* **Orange SVM Output:** `Prediction: TOP RATED (>= 4.45)` | Confidence: `27.5%`
+* **Orange SVM Output:** `Prediction: TOP RATED (>= 4.45)` | Confidence: `96.2%`
 * **Orange kNN Output:** `Prediction: MODERATE RATED (4.05 - 4.45)` | Confidence: `60.0%`
-* **Orange Random Forest Output:** `Prediction: STANDARD / LOW RATED (< 4.05)` | Confidence: `35.8%`
+* **Orange Random Forest Output:** `Prediction: MODERATE RATED (4.05 - 4.45)` | Confidence: `100.0%`
 
 ### Appendix D — Application Source Code Snippets (`app/app.py`)
 
@@ -280,11 +280,11 @@ This study successfully developed and deployed **Byte & Brew: CafeSpot Recommend
 ```python
 def load_assets(model_name):
     file_map = {
-        "Orange SVM (best_model.pkcls)": "best_model.pkcls",
-        "Orange kNN (KNN_model.pkcls)": "KNN_model.pkcls",
-        "Orange Random Forest (Random_forest_model.pkcls)": "Random_forest_model.pkcls",
+        "Clean Orange SVM (clean_SVM_model.pkcls)": "clean_SVM_model.pkcls",
+        "Clean Orange kNN (clean_KNN_model.pkcls)": "clean_KNN_model.pkcls",
+        "Clean Orange Random Forest (clean_RandomForest_model.pkcls)": "clean_RandomForest_model.pkcls",
     }
-    filename = file_map.get(model_name, "best_model.pkcls")
+    filename = file_map.get(model_name, "clean_SVM_model.pkcls")
     model_path = f"models/{filename}"
     
     offsets, factors = [], []
@@ -310,15 +310,15 @@ def load_assets(model_name):
 raw_features = np.array([[input_reviews, input_pincode, input_lat, input_lon]])
 
 # Domain normalization transformation: (x - offset) * factor
-if len(offsets) == 4 and len(factors) == 4 and np.any(factors != 1.0):
-    norm_features = (raw_features - offsets) * factors
+if len(offsets) >= 4 and len(factors) >= 4 and np.any(factors[:4] != 1.0):
+    norm_features = (raw_features - offsets[:4]) * factors[:4]
 else:
     norm_features = raw_features
 
 raw_pred = model.predict(norm_features)[0]
 raw_proba = model.predict_proba(norm_features)[0] if hasattr(model, 'predict_proba') else None
 
-pred_idx, confidence_str = parse_prediction_and_confidence(raw_pred, raw_proba)
+label_text, confidence_str, is_top, badge_type, num_classes = parse_prediction_and_confidence(raw_pred, raw_proba, classes)
 ```
 
 ### Appendix E — Group Contribution Record
