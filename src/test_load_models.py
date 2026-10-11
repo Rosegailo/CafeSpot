@@ -17,10 +17,13 @@ class DummyOrangeClass:
     def __setstate__(self, state):
         self.__dict__.update(state)
 
-print("🔄 Testing Orange Model Loading (3 Saved Models)...")
+print("🔄 Testing Orange Model Loading (Saved Models)...")
 
 orange_files = {
-    "Orange SVM": "models/best_model.pkcls",
+    "Clean Orange SVM": "models/clean_SVM_model.pkcls",
+    "Clean Orange kNN": "models/clean_KNN_model.pkcls",
+    "Clean Orange Random Forest": "models/clean_RandomForest_model.pkcls",
+    "Orange SVM (best_model)": "models/best_model.pkcls",
     "Orange kNN": "models/KNN_model.pkcls",
     "Orange Random Forest": "models/Random_forest_model.pkcls"
 }
