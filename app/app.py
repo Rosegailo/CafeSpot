@@ -240,9 +240,20 @@ with col2:
         st.write("**Algorithm:** Random Forest Ensemble")
         st.write("**Strength:** Multi-tree decision splitting across feature thresholds.")
 
-# 8. Nearby Reference Locations
+# 8. Nearby Reference Locations (Synchronized across Pin Code, Reviews, Lat, and Lon)
 if df is not None:
     st.markdown("---")
     st.subheader("Nearby Reference Locations from Core Dataset")
-    df['Distance'] = np.sqrt((df['Latitude'] - input_lat)**2 + (df['Longitude'] - input_lon)**2)
-    st.table(df.sort_values('Distance').head(5)[['Company Name', 'Rating', 'NumReview', 'Address']])
+
+    df_ref = df.copy()
+    df_ref['Geo_Distance'] = np.sqrt((df_ref['Latitude'] - input_lat)**2 + (df_ref['Longitude'] - input_lon)**2)
+    df_ref['Review_Diff'] = np.abs(df_ref['NumReview'] - input_reviews)
+
+    # Priority 1: Match Exact Pin Code and nearest Review Count & Geographic Distance
+    pincode_matches = df_ref[df_ref['Pin Code'] == input_pincode]
+    if len(pincode_matches) >= 5:
+        nearby_df = pincode_matches.sort_values(['Review_Diff', 'Geo_Distance']).head(5)
+    else:
+        nearby_df = df_ref.sort_values(['Geo_Distance', 'Review_Diff']).head(5)
+
+    st.table(nearby_df[['Company Name', 'Rating', 'NumReview', 'Address']])
