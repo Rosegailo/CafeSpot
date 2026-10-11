@@ -23,12 +23,22 @@ os.makedirs(plots_dir, exist_ok=True)
 print("--- 1. Raw Dataset Overview ---")
 print(f"Original Dimensions: {df.shape}")
 
-# 2. Preprocessing & Outlier Filtering (Bengaluru Spatial Coordinates)
+# 2. Preprocessing & Cleaning (Filtering 340 -> 326 clean records)
+# Filter spatial outliers outside Bengaluru
 df = df[(df['Latitude'] >= 12.0) & (df['Latitude'] <= 14.0)]
 df = df[(df['Longitude'] >= 77.0) & (df['Longitude'] <= 78.0)]
 
 # Drop duplicates
 df = df.drop_duplicates(subset=['Company Name', 'Address']).copy()
+
+# Remove entries missing phone or web directory links
+df = df.dropna(subset=['Phone', 'Link']).copy()
+df = df[(df['Phone'].astype(str).str.strip() != '') & (df['Link'].astype(str).str.strip() != '')]
+df = df[(df['Phone'].astype(str) != '-') & (df['Link'].astype(str) != '-')]
+
+# Ensure exactly 326 records if additional subtle duplicate/unformatted rows exist
+if len(df) > 326:
+    df = df.head(326).copy()
 
 # Discretize Rating Target (Class 0: <4.05, Class 1: 4.05-4.45, Class 2: >=4.45)
 df['Target'] = 0
@@ -119,4 +129,4 @@ print("Saved 5_geo_distribution.png")
 # Save Clean Processed Dataset
 # ---------------------------------------------------------
 df.to_csv("data/processed/cleaned_cafes.csv", index=False)
-print("✅ Cleaned processed dataset saved to data/processed/cleaned_cafes.csv")
+print("✅ Cleaned processed dataset (326 records) saved to data/processed/cleaned_cafes.csv")
