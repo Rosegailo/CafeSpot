@@ -102,7 +102,7 @@ Open your browser at `http://localhost:8501`.
 
 1. **Model Configuration (Sidebar):** Select between **Clean Orange SVM**, **Clean Orange kNN**, and **Clean Orange Random Forest** from the dropdown menu.
 2. **Café Parameters (Sidebar):**
-   * `Latitude` & `Longitude`: Candidate site geographical coordinates (Default: `12.971600`, `77.594600` - Bengaluru).
+   * `Location input`: The Streamlit web application requires typed latitude/longitude entries and cannot recommend by pinning or choosing a place on the map.
    * `Expected Number of Reviews`: Projected review traffic count (e.g., `150`).
 3. **Input Over-typing & Boundary Indicators:**
    * The sidebar and main dashboard feature live validation indicators. If latitude is outside $12.0 - 14.0$, longitude is outside $77.0 - 78.0$, or reviews exceed expected dataset max ($>30,000$), an automatic warning badge alerts the user.
@@ -113,5 +113,6 @@ Open your browser at `http://localhost:8501`.
 ## ⚠️ Model Limitations & Troubleshooting
 
 * **Geographical Scope:** The model is calibrated specifically for urban metropolitan commercial zones in Bengaluru, India.
+* **Map Pinning Limitation:** The application cannot recommend cafés by pinning or selecting a place on a map; users must type coordinates.
 * **Feature Boundaries:** Predictor variables are constrained to spatial coordinates, postal code, and review density. Financial overhead, rent costs, and indoor capacity are not included.
 * **Troubleshooting Command Not Found:** If running `streamlit` in PowerShell yields a `CommandNotFoundException`, use `python -m streamlit run app/app.py`.

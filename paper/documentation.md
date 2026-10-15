@@ -148,13 +148,14 @@ Extracted Orange domain parameters for normalized feature transformation:
 | **Random Forest Classifier** | `clean_RandomForest_model.pkcls` | 0.595 | 0.387 | 0.388 | 0.386 | 0.081 | Evaluated & Saved |
 
 ### D. Pairwise Statistical ROC Analysis
-Pairwise ROC AUC hypothesis probability testing confirmed that **Support Vector Machine (SVM)** holds a **91.2% probability** of outperforming Random Forest ($p = 0.912$) and a **65.3% probability** of outperforming kNN ($p = 0.653$).
+Pairwise ROC AUC hypothesis probability testing on the 326-record dataset confirmed that **Support Vector Machine (SVM)** holds an **83.0% probability** of outperforming Random Forest ($p = 0.830$) and an **83.2% probability** of outperforming kNN ($p = 0.832$).
 
 ### E. Application Deployment Results
 The serialized model (`clean_SVM_model.pkcls`) was deployed in `app/app.py` using Streamlit and Folium GIS:
 - Dynamic dropdown selection between all three trained Orange `.pkcls` models.
 - Real-time normalization transform using exact domain offset/factor arrays.
 - Input validation indicators warning users if entered coordinates/reviews exceed valid dataset boundaries.
+- The Streamlit web application requires typed latitude/longitude entries and cannot recommend by pinning or choosing a place on the map.
 - Interactive Folium map marker showing candidate target locations alongside the top 5 nearest reference venues.
 - Publicly deployed at: `https://cafespot-xcjc4cmlduy3hvkikas3bk.streamlit.app` [2].
 
@@ -177,7 +178,8 @@ Entrepreneurs can utilize **CafeSpot Recommender** during pre-feasibility analys
 ### E. Limitations
 1. The dataset originates from Bengaluru, India; performance in Philippine urban centers requires localized retraining.  
 2. The model relies on static directory snapshots and does not reflect real-time foot-traffic API streams.  
-3. Rental overhead and seating capacity were not available in the raw Kaggle dataset.
+3. Rental overhead and seating capacity were not available in the raw Kaggle dataset.  
+4. The application cannot recommend cafés by pinning or selecting a place on a map; users must type coordinates.
 
 ---
 
