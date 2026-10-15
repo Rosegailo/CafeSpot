@@ -153,14 +153,14 @@ with st.expander("📊 View Orange 5-Fold Cross-Validation Metrics"):
     comparison_data = {
         "Orange Model": ["SVM", "kNN", "Random Forest"],
         "Saved File": ["`clean_SVM_model.pkcls` / `best_model.pkcls` 🏆", "`clean_KNN_model.pkcls`", "`clean_RandomForest_model.pkcls`"],
-        "AUC": ["0.657 🏆", "0.649", "0.621"],
-        "CA (Accuracy)": ["0.468 🏆", "0.441", "0.441"],
-        "Precision": ["0.515 🏆", "0.442", "0.438"],
-        "F1-Score": ["0.384", "0.441 🏆", "0.437"],
-        "MCC": ["0.238 🏆", "0.161", "0.162"],
+        "AUC": ["0.633 🏆", "0.620", "0.601"],
+        "CA (Accuracy)": ["0.451 🏆", "0.423", "0.396"],
+        "Precision": ["0.432 🏆", "0.427", "0.394"],
+        "F1-Score": ["0.398", "0.424 🏆", "0.395"],
+        "MCC": ["0.192 🏆", "0.134", "0.090"],
     }
     st.table(pd.DataFrame(comparison_data))
-    st.success("🏆 **Orange SVM** achieves the highest **AUC (0.657)**, **Accuracy (0.468)**, **Precision (0.515)**, and **MCC (0.238)** among all 3 models evaluated in Orange Data Mining.")
+    st.success("🏆 **Orange SVM** achieves the highest **AUC (0.633)**, **Accuracy (0.451)**, **Precision (0.432)**, and **MCC (0.192)** among all 3 models evaluated in Orange Data Mining.")
 
 # 6. Prediction Logic
 n_features_expected = getattr(model, 'n_features_in_', 4)
