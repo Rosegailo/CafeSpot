@@ -9,7 +9,7 @@ from streamlit_folium import st_folium
 
 # 1. Page Configuration
 st.set_page_config(
-    page_title="Byte & Brew: CafeSpot - AI Predictor",
+    page_title="CafeSpot Recommender",
     page_icon="☕",
     layout="wide",
 )
@@ -137,10 +137,33 @@ model, offsets, factors, df, classes = load_assets(selected_model_name)
 st.sidebar.header("📍 Café Parameters")
 input_lat = st.sidebar.number_input("Latitude", value=12.9716, format="%.6f")
 input_lon = st.sidebar.number_input("Longitude", value=77.5946, format="%.6f")
-input_reviews = st.sidebar.number_input("Expected Number of Reviews", min_value=0, value=150, step=10)
+input_reviews = st.sidebar.number_input("Expected Number of Reviews", value=150, step=10)
+
+# Input Validation & Boundary Indicators
+validation_messages = []
+if not (-90.0 <= input_lat <= 90.0):
+    validation_messages.append("🚨 **Latitude** is outside global physical bounds (-90° to 90°).")
+elif not (12.0 <= input_lat <= 14.0):
+    validation_messages.append("⚠️ **Latitude** is outside Bengaluru dataset coverage (12.0 to 14.0).")
+
+if not (-180.0 <= input_lon <= 180.0):
+    validation_messages.append("🚨 **Longitude** is outside global physical bounds (-180° to 180°).")
+elif not (77.0 <= input_lon <= 78.0):
+    validation_messages.append("⚠️ **Longitude** is outside Bengaluru dataset coverage (77.0 to 78.0).")
+
+if input_reviews < 0:
+    validation_messages.append("🚨 **Expected Number of Reviews** cannot be negative.")
+elif input_reviews > 30000:
+    validation_messages.append("⚠️ **Expected Number of Reviews** exceeds dataset max (~17.5k).")
+
+if validation_messages:
+    for msg in validation_messages:
+        st.sidebar.warning(msg)
+else:
+    st.sidebar.success("✅ Input parameters within valid dataset range.")
 
 # 4. Header
-st.title("☕ Byte & Brew: CafeSpot Predictor")
+st.title("☕ CafeSpot Recommender")
 st.markdown(f"### Currently active: **{selected_model_name}**")
 
 if model is None:
@@ -201,6 +224,10 @@ except Exception:
 label_text, confidence_str, marker_color, badge_type, num_classes = parse_prediction_and_confidence(raw_pred, raw_proba, classes)
 
 # 7. Results Dashboard
+if validation_messages:
+    formatted_warnings = "\n".join([f"- {msg}" for msg in validation_messages])
+    st.warning(f"⚠️ **Input Out-of-Bounds Indicator:**\n\n{formatted_warnings}\n\n*Note: Predictions on out-of-distribution or over-typed inputs may lead to model extrapolation.*")
+
 col1, col2 = st.columns([2, 1])
 
 with col1:
