@@ -36,30 +36,30 @@ def parse_prediction_and_confidence(prediction, prediction_proba, classes):
         # Binary Classification (0 = Standard/Low < 4.30, 1 = Top Rated >= 4.30)
         if pred_str in ['1', '1.0'] or 'Top' in pred_str or '≥' in pred_str or '>=' in pred_str:
             label_text = "✨ **Prediction: TOP RATED (≥ 4.30)**"
-            is_top = True
             badge_type = "success"
+            marker_color = "green"
             idx = 1
         else:
             label_text = "⚠️ **Prediction: STANDARD / LOW RATED (< 4.30)**"
-            is_top = False
             badge_type = "warning"
+            marker_color = "red"
             idx = 0
     else:
         # 3-Class Classification (< 4.05, 4.05 - 4.45, ≥ 4.45)
         if pred_str in ['2', '2.0'] or '≥' in pred_str or '>=' in pred_str or 'Top' in pred_str:
             label_text = "✨ **Prediction: TOP RATED (≥ 4.45)**"
-            is_top = True
             badge_type = "success"
+            marker_color = "green"
             idx = 2
         elif pred_str in ['1', '1.0'] or '4.05' in pred_str or 'Moderate' in pred_str:
             label_text = "⭐ **Prediction: MODERATE RATED (4.05 - 4.45)**"
-            is_top = True
             badge_type = "info"
+            marker_color = "orange"
             idx = 1
         else:
             label_text = "⚠️ **Prediction: STANDARD / LOW RATED (< 4.05)**"
-            is_top = False
             badge_type = "warning"
+            marker_color = "red"
             idx = 0
 
     confidence_str = None
@@ -74,7 +74,7 @@ def parse_prediction_and_confidence(prediction, prediction_proba, classes):
         except Exception:
             confidence_str = None
 
-    return label_text, confidence_str, is_top, badge_type, num_classes
+    return label_text, confidence_str, marker_color, badge_type, num_classes
 
 # 2. Asset Loading (Orange .pkcls models + domain normalization transform)
 @st.cache_resource
@@ -198,7 +198,7 @@ try:
 except Exception:
     raw_proba = None
 
-label_text, confidence_str, is_top, badge_type, num_classes = parse_prediction_and_confidence(raw_pred, raw_proba, classes)
+label_text, confidence_str, marker_color, badge_type, num_classes = parse_prediction_and_confidence(raw_pred, raw_proba, classes)
 
 # 7. Results Dashboard
 col1, col2 = st.columns([2, 1])
@@ -220,7 +220,7 @@ with col1:
     folium.Marker(
         [input_lat, input_lon],
         popup="Target Location",
-        icon=folium.Icon(color="green" if is_top else "red", icon="coffee", prefix="fa")
+        icon=folium.Icon(color=marker_color, icon="coffee", prefix="fa")
     ).add_to(m)
     st_folium(m, width="100%", height=300)
 
