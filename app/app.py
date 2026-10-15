@@ -9,7 +9,7 @@ from streamlit_folium import st_folium
 
 # 1. Page Configuration
 st.set_page_config(
-    page_title="CafeSpot Recommender",
+    page_title="Byte & Brew: CafeSpot Recommender",
     page_icon="☕",
     layout="wide",
 )
@@ -163,7 +163,7 @@ else:
     st.sidebar.success("✅ Input parameters within valid dataset range.")
 
 # 4. Header
-st.title("☕ CafeSpot Recommender")
+st.title("☕ Byte & Brew: CafeSpot Recommender")
 st.markdown(f"### Currently active: **{selected_model_name}**")
 
 if model is None:
