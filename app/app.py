@@ -163,21 +163,25 @@ with st.expander("📊 View Orange 5-Fold Cross-Validation Metrics"):
     st.success("🏆 **Orange SVM** achieves the highest **AUC (0.633)**, **Accuracy (0.451)**, **Precision (0.432)**, and **MCC (0.192)** among all 3 models evaluated in Orange Data Mining.")
 
 # 6. Prediction Logic
-n_features_expected = getattr(model, 'n_features_in_', 4)
-raw_4 = np.array([[input_reviews, input_pincode, input_lat, input_lon]])
+n_features_expected = getattr(model, 'n_features_in_', 3)
+raw_3 = np.array([[input_reviews, input_lat, input_lon]])
 
-if n_features_expected == 5:
-    raw_features = np.hstack([raw_4, [[1]]])
+if n_features_expected == 4:
+    raw_features = np.hstack([raw_3, [[input_pincode]]])
+elif n_features_expected == 5:
+    raw_features = np.hstack([raw_3, [[input_pincode, 1]]])
 else:
-    raw_features = raw_4
+    raw_features = raw_3
 
 # Normalize features if Orange normalization factors are present
-if len(offsets) >= 4 and len(factors) >= 4 and np.any(factors[:4] != 1.0):
-    norm_4 = (raw_4 - offsets[:4]) * factors[:4]
-    if n_features_expected == 5:
-        norm_features = np.hstack([norm_4, [[1]]])
+if len(offsets) >= 3 and len(factors) >= 3 and np.any(factors[:3] != 1.0):
+    norm_3 = (raw_3 - offsets[:3]) * factors[:3]
+    if n_features_expected == 4:
+        norm_features = np.hstack([norm_3, [[input_pincode]]])
+    elif n_features_expected == 5:
+        norm_features = np.hstack([norm_3, [[input_pincode, 1]]])
     else:
-        norm_features = norm_4
+        norm_features = norm_3
 else:
     norm_features = raw_features
 
@@ -224,7 +228,7 @@ with col2:
     st.subheader("Model Diagnostic Profile")
     st.write(f"**Model Name:** {selected_model_name}")
     st.write("**Orange Workflow:** CSV Import ➔ Select Columns ➔ Learner ➔ Save Model")
-    st.write("**Features Used:** NumReview, Pin Code, Latitude, Longitude")
+    st.write("**Features Used:** NumReview, Latitude, Longitude")
     if num_classes == 2:
         st.write("**Target Rating Bins:** `< 4.30` (Standard/Low), `≥ 4.30` (Top Rated)")
     else:
