@@ -138,7 +138,6 @@ st.sidebar.header("📍 Café Parameters")
 input_lat = st.sidebar.number_input("Latitude", value=12.9716, format="%.6f")
 input_lon = st.sidebar.number_input("Longitude", value=77.5946, format="%.6f")
 input_reviews = st.sidebar.number_input("Expected Number of Reviews", min_value=0, value=150, step=10)
-input_pincode = st.sidebar.number_input("Pin Code", value=560001, step=1)
 
 # 4. Header
 st.title("☕ Byte & Brew: CafeSpot Predictor")
@@ -165,6 +164,7 @@ with st.expander("📊 View Orange 5-Fold Cross-Validation Metrics"):
 # 6. Prediction Logic
 n_features_expected = getattr(model, 'n_features_in_', 3)
 raw_3 = np.array([[input_reviews, input_lat, input_lon]])
+input_pincode = 560001  # Default fallback for background compatibility with legacy models
 
 if n_features_expected == 4:
     raw_features = np.hstack([raw_3, [[input_pincode]]])
@@ -244,24 +244,18 @@ with col2:
         st.write("**Algorithm:** Random Forest Ensemble")
         st.write("**Strength:** Multi-tree decision splitting across feature thresholds.")
 
-# 8. Nearby Reference Locations (Synchronized across Pin Code, Reviews, Lat, and Lon)
+# 8. Nearby Reference Locations (Synchronized across Latitude, Longitude, and Reviews)
 if df is not None:
     st.markdown("---")
     st.subheader("Nearby Reference Locations from Core Dataset")
 
     df_ref = df.copy()
-    # Compute Pin Code match (0 = Exact Match, 1 = Mismatch)
-    df_ref['Pin_Mismatch'] = (df_ref['Pin Code'] != input_pincode).astype(int)
     # Compute Spatial Euclidean Distance (Latitude & Longitude)
     df_ref['Geo_Distance'] = np.sqrt((df_ref['Latitude'] - input_lat)**2 + (df_ref['Longitude'] - input_lon)**2)
     # Compute Review Count Similarity
     df_ref['Review_Diff'] = np.abs(df_ref['NumReview'] - input_reviews)
 
-    # Sort primarily by Pin Code Match, then Geographic Distance, then Review Similarity
-    nearby_df = df_ref.sort_values(['Pin_Mismatch', 'Geo_Distance', 'Review_Diff']).head(5)
-
-    # Inform user if exact Pin Code is not present in dataset
-    if (df['Pin Code'] == input_pincode).sum() == 0:
-        st.info(f"ℹ️ Pin Code **{input_pincode}** is not present in the dataset. Displaying geographically nearest reference locations instead.")
+    # Sort primarily by Geographic Distance, then Review Similarity
+    nearby_df = df_ref.sort_values(['Geo_Distance', 'Review_Diff']).head(5)
 
     st.table(nearby_df[['Company Name', 'Rating', 'NumReview', 'Address']])
